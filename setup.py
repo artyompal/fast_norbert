@@ -1,7 +1,9 @@
+import os
+import setuptools
+import sys
+
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
-import sys
-import setuptools
 
 __version__ = '0.0.1'
 
@@ -22,7 +24,7 @@ ext_modules = [
     Extension(
         'fast_norbert',
         # Sort input source files to ensure bit-for-bit reproducible builds
-        sorted(['norbert.cpp']),
+        sorted(['cxx/norbert.cxx']),
         include_dirs=[
             # Path to pybind11 headers
             get_pybind_include(),
@@ -39,7 +41,7 @@ def has_flag(compiler, flagname):
     """
     import tempfile
     import os
-    with tempfile.NamedTemporaryFile('w', suffix='.cpp', delete=False) as f:
+    with tempfile.NamedTemporaryFile('w', suffix='.cxx', delete=False) as f:
         f.write('int main (int argc, char **argv) { return 0; }')
         fname = f.name
     try:
@@ -115,7 +117,7 @@ class BuildExt(build_ext):
 
 
 # Get the long description from the README file
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+with open('README.md') as f:
     long_description = f.read()
 
 setup(
