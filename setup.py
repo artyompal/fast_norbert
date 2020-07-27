@@ -129,7 +129,7 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     package_dir={"": "src"},
-    packages=['fast_norbert', 'cpp_norbert'],
+    packages=['fast_norbert'],
     ext_modules=ext_modules,
     setup_requires=['pybind11>=2.5.0'],
     install_requires=['numpy>=1.0.0', 'scipy>=1.0.0'],
