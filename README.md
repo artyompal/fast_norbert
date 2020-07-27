@@ -29,7 +29,7 @@ estimate = istft(y)
 
 ## Authors
 
-Artyom Palvelev (this repo)
+Artyom Palvelev (this repo) <br>
 Antoine Liutkus, Fabian-Robert Stöter (original repo)
 
 ## License
