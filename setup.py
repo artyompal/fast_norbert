@@ -22,11 +22,11 @@ class get_pybind_include(object):
 
 ext_modules = [
     Extension(
-        'fast_norbert',
-        # Sort input source files to ensure bit-for-bit reproducible builds
-        sorted(['cxx/norbert.cxx']),
+        'cpp_norbert',
+        # sort input source files to ensure bit-for-bit reproducible builds
+        sorted(['src/cpp_norbert/norbert.cxx']),
         include_dirs=[
-            # Path to pybind11 headers
+            # path to pybind11 headers
             get_pybind_include(),
         ],
         language='c++'
@@ -128,8 +128,11 @@ setup(
     description='Accelerated Wiener filter',
     long_description=long_description,
     long_description_content_type='text/markdown',
+    package_dir={"": "src"},
+    packages=['cpp_norbert', 'py_norbert'],
     ext_modules=ext_modules,
     setup_requires=['pybind11>=2.5.0'],
+    install_requires=['numpy>=1.0.0', 'scipy>=1.0.0'],
     cmdclass={'build_ext': BuildExt},
     zip_safe=False,
 )
