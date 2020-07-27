@@ -139,7 +139,7 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
     v = np.zeros((nb_frames, nb_bins, nb_sources))
 
     if verbose:
-        print('Number of iterations: ', iterations)
+        print('number of iterations: ', iterations)
 
     regularization = np.sqrt(eps) * (
             np.tile(np.eye(nb_channels, dtype=np.complex64), (1, nb_bins, 1, 1)))
