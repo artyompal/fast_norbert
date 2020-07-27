@@ -1,8 +1,23 @@
-import numpy as np
 import itertools
+import time
+
+import numpy as np
+
 from .contrib import compress_filter, smooth, residual_model
 from .contrib import reduce_interferences
 
+import cpp_norbert
+
+
+def print_diff(a, b):
+    assert a.shape == b.shape, f'{a} == {b}'
+    diff = np.abs(a - b)
+    pos = np.unravel_index(np.argmax(diff, axis=None), diff.shape)
+
+    print('max pos', pos)
+    print('max diff', diff[pos])
+    print('a', a[pos])
+    print('b', b[pos])
 
 def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
     r"""Expectation maximization algorithm, for refining source separation
@@ -116,7 +131,7 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
         eps = np.finfo(np.real(x[0]).dtype).eps
 
     # dimensions
-    (nb_frames, nb_bins, nb_channels) = x.shape
+    nb_frames, nb_bins, nb_channels = x.shape
     nb_sources = y.shape[-1]
 
     # allocate the spatial covariance matrices and PSD
@@ -125,29 +140,58 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
 
     if verbose:
         print('Number of iterations: ', iterations)
+
     regularization = np.sqrt(eps) * (
-            np.tile(np.eye(nb_channels, dtype=np.complex64),
-                    (1, nb_bins, 1, 1)))
+            np.tile(np.eye(nb_channels, dtype=np.complex64), (1, nb_bins, 1, 1)))
+
     for it in range(iterations):
         # constructing the mixture covariance matrix. Doing it with a loop
         # to avoid storing anytime in RAM the whole 6D tensor
         if verbose:
             print('EM, iteration %d' % (it+1))
 
+        tm = time.time()
+
         for j in range(nb_sources):
             # update the spectrogram model for source j
-            v[..., j], R[..., j] = get_local_gaussian_model(
-                y[..., j],
-                eps)
+            y_j = y[..., j]
+            v_j, R_j = v[..., j], R[..., j]
+
+            cpp_norbert.get_local_gaussian_model(v_j, R_j, y_j, eps)
+
+            # r1, r2 = get_local_gaussian_model(y_j, eps)
+            # assert r1.shape == v_j.shape, f'{r1.shape} == {v_j.shape}'
+            # assert r2.shape == R_j.shape, f'{r2.shape} == {R_j.shape}'
+            # assert np.allclose(r1, v_j), f'{r1} == {v_j}'
+            # assert np.allclose(r2, R_j), f'{r2} == {R_j}'
+
+        tm = time.time() - tm
+        print('time of get_local_gaussian_model', tm)
+
+        tm = time.time()
 
         for t in range(nb_frames):
-            Cxx = get_mix_model(v[None, t, ...], R)
+            # orig_cxx = get_mix_model(v[None, t, ...], R)
+            Cxx = cpp_norbert.get_mix_model(v[None, t, ...], R)
+            # assert np.allclose(orig_cxx, Cxx), f'{orig_cxx} == {Cxx}'
+
             Cxx += regularization
             inv_Cxx = _invert(Cxx, eps)
+
             # separate the sources
             for j in range(nb_sources):
-                W_j = wiener_gain(v[None, t, ..., j], R[..., j], inv_Cxx)
-                y[t, ..., j] = apply_filter(x[None, t, ...], W_j)[0]
+                # orig_W_j = wiener_gain(v[None, t, ..., j], R[..., j], inv_Cxx)
+                W_j = cpp_norbert.wiener_gain(v[None, t, ..., j], R[..., j], inv_Cxx)
+                # assert np.allclose(orig_W_j, W_j), f'{orig_W_j} == {W_j}'
+
+                # orig_y_j = apply_filter(x[None, t, ...], W_j)[0]
+                y_j = cpp_norbert.apply_filter(x[None, t, ...], W_j)[0]
+                # assert np.allclose(orig_y_j, y_j), f'{orig_y_j} == {y_j}'
+
+                y[t, ..., j] = y_j
+
+        tm = time.time() - tm
+        print('time of the main loop', tm)
 
     return y, v, R
 
@@ -246,20 +290,51 @@ def wiener(v, x, iterations=1, use_softmask=True, eps=None):
     :func:`wiener`.
 
     """
+    print('started wiener()')
+    tm = time.time()
+
     if use_softmask:
         y = softmask(v, x, eps=eps)
     else:
-        y = v * np.exp(1j*np.angle(x[..., None]))
+        t = time.time()
+
+        # yy = v * np.exp(1j * np.angle(x[..., None]))
+        y = cpp_norbert.get_phase(v, x)
+        # assert np.allclose(y1, y2), f'{y1} != {y2}'
+
+        print('time1:', time.time() - t)
 
     if not iterations:
         return y
 
     # we need to refine the estimates. Scales down the estimates for
     # numerical stability
-    max_abs = max(1, np.abs(x).max()/10.)
-    x /= max_abs
-    y = expectation_maximization(y/max_abs, x, iterations, eps=eps)[0]
-    return y*max_abs
+    t = time.time()
+
+    # max_abs2 = max(1, np.abs(x).max() / 10)
+    # xx = x / max_abs2
+    # yy = y / max_abs2
+
+    max_abs = cpp_norbert.downscale(x, y);
+
+    # assert np.allclose(max_abs, max_abs2)
+    # assert np.allclose(x, xx), f'{x} != {xx}'
+    # assert np.allclose(y, yy), f'{y} != {yy}'
+
+    print('time2:', time.time() - t)
+
+    print('time in wiener():', time.time() - tm)
+
+    y = expectation_maximization(y, x, iterations, eps=eps)[0]
+    t = time.time()
+    y *= max_abs
+
+    # This is slower so far:
+    # cpp_norbert.upscale(y, max_abs);
+    # assert np.allclose(y, yy), f'{y} != {yy}'
+
+    print('time3:', time.time() - t)
+    return y
 
 
 def softmask(v, x, logit=None, eps=None):
@@ -276,7 +351,7 @@ def softmask(v, x, logit=None, eps=None):
 
     References
     ----------
-    .. [1] N. Wiener,"Extrapolation, Inerpolation, and Smoothing of Stationary
+    .. [1] N. Wiener,"Extrapolation, Interpolation, and Smoothing of Stationary
         Time Series." 1949.
 
     .. [2] A. Liutkus and R. Badeau. "Generalized Wiener filtering with
@@ -305,10 +380,13 @@ def softmask(v, x, logit=None, eps=None):
     # to avoid dividing by zero
     if eps is None:
         eps = np.finfo(np.real(x[0]).dtype).eps
+
     total_energy = np.sum(v, axis=-1, keepdims=True)
     filter = v/(eps + total_energy.astype(x.dtype))
+
     if logit is not None:
         filter = compress_filter(filter, eps, thresh=logit, multichannel=False)
+
     return filter * x[..., None]
 
 
@@ -334,6 +412,7 @@ def _invert(M, eps):
         inverses of M
     """
     nb_channels = M.shape[-1]
+
     if nb_channels == 1:
         # scalar case
         invM = 1.0/(M+eps)
@@ -352,6 +431,7 @@ def _invert(M, eps):
     else:
         # general case : no use of analytical expression (slow!)
         invM = np.linalg.pinv(M, eps)
+
     return invM
 
 
@@ -370,7 +450,7 @@ def wiener_gain(v_j, R_j, inv_Cxx):
 
     Parameters
     ----------
-    v_j: np.ndarray [shape=(nb_frames, nb_bins, nb_channels)]
+    v_j: np.ndarray [shape=(nb_frames, nb_bins)]
         power spectral density of the target source.
 
     R_j: np.ndarray [shape=(nb_bins, nb_channels, nb_channels)]
@@ -387,12 +467,14 @@ def wiener_gain(v_j, R_j, inv_Cxx):
         :func:`apply_filter` to get the target source estimate.
 
     """
-    (_, nb_channels) = R_j.shape[:2]
+    _, nb_channels = R_j.shape[:2]
 
     # computes multichannel Wiener gain as v_j R_j inv_Cxx
     G = np.zeros_like(inv_Cxx)
+
     for (i1, i2, i3) in itertools.product(*(range(nb_channels),)*3):
         G[..., i1, i2] += (R_j[None, :, i1, i3] * inv_Cxx[..., i3, i2])
+
     G *= v_j[..., None, None]
     return G
 
@@ -419,8 +501,10 @@ def apply_filter(x, W):
 
     # apply the filter
     y_hat = 0+0j
+
     for i in range(nb_channels):
         y_hat += W[..., i] * x[..., i, None]
+
     return y_hat
 
 
@@ -443,10 +527,12 @@ def get_mix_model(v, R):
         Covariance matrix for the mixture
     """
     nb_channels = R.shape[1]
-    (nb_frames, nb_bins, nb_sources) = v.shape
+    nb_frames, nb_bins, nb_sources = v.shape
     Cxx = np.zeros((nb_frames, nb_bins, nb_channels, nb_channels), R.dtype)
+
     for j in range(nb_sources):
         Cxx += v[..., j, None, None] * R[None, ..., j]
+
     return Cxx
 
 
@@ -456,18 +542,19 @@ def _covariance(y_j):
 
     Parameters
     ----------
-    y_j: np.ndarray [shape=(nb_frames, nb_bins, nb_channels)].
+    y_j: np.ndarray [shape=(1, nb_bins, nb_channels)].
           complex stft of the source.
 
     Returns
     -------
-    Cj: np.ndarray [shape=(nb_frames, nb_bins, nb_channels, nb_channels)]
+    Cj: np.ndarray [shape=(1, nb_bins, nb_channels, nb_channels)]
         just y_j * conj(y_j.T): empirical covariance for each TF bin.
     """
-    (nb_frames, nb_bins, nb_channels) = y_j.shape
+    nb_frames, nb_bins, nb_channels = y_j.shape
     Cj = np.zeros((nb_frames, nb_bins, nb_channels, nb_channels),
                   y_j.dtype)
-    for (i1, i2) in itertools.product(*(range(nb_channels),)*2):
+
+    for i1, i2 in itertools.product(*(range(nb_channels),) * 2):
         Cj[..., i1, i2] += y_j[..., i1] * np.conj(y_j[..., i2])
 
     return Cj
@@ -501,7 +588,7 @@ def get_local_gaussian_model(y_j, eps=1.):
     -------
     v_j: np.ndarray [shape=(nb_frames, nb_bins)]
         power spectral density of the source
-    R_J: np.ndarray [shape=(nb_bins, nb_channels, nb_channels)]
+    R_j: np.ndarray [shape=(nb_bins, nb_channels, nb_channels)]
         Spatial covariance matrix of the source
 
     """
@@ -512,8 +599,10 @@ def get_local_gaussian_model(y_j, eps=1.):
     nb_frames = y_j.shape[0]
     R_j = 0
     weight = eps
+
     for t in range(nb_frames):
         R_j += _covariance(y_j[None, t, ...])
         weight += v_j[None, t, ...]
+
     R_j /= weight[..., None, None]
-    return v_j, R_j
+    return v_j, R_j[0]
