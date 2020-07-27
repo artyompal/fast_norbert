@@ -98,7 +98,7 @@ class BuildExt(build_ext):
             extra_compile_args=[
                             '-Wno-parentheses',
                             '-Werror',
-                            '-fopenmp',
+                            # '-fopenmp',
                             '-ffast-math',
                             '-march=native',
                             ]
@@ -129,7 +129,7 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     package_dir={"": "src"},
-    packages=['cpp_norbert', 'py_norbert'],
+    packages=['fast_norbert', 'cpp_norbert'],
     ext_modules=ext_modules,
     setup_requires=['pybind11>=2.5.0'],
     install_requires=['numpy>=1.0.0', 'scipy>=1.0.0'],

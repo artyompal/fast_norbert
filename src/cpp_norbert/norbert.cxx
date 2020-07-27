@@ -274,7 +274,7 @@ py::array_t<complex> get_phase(py::array_t<float> &v, const py::array_t<complex>
     auto v_ref = v.unchecked<4>();
     auto x_ref = x.unchecked<3>();
 
-    #pragma omp for
+    // #pragma omp for
     for (size_t frame = 0; frame < nb_frames; frame++) {
         for (size_t bin = 0; bin < nb_bins; bin++) {
             for (size_t ch = 0; ch < nb_channels; ch++) {
@@ -324,7 +324,7 @@ double downscale(py::array_t<complex> &x, py::array_t<complex> &y) {
 
     double max_abs = 1.0;
 
-    #pragma omp for
+    // #pragma omp for
     for (size_t bin = 0; bin < nb_bins; bin++) {
         for (size_t frame = 0; frame < nb_frames; frame++) {
             for (size_t ch = 0; ch < nb_channels; ch++) {
@@ -335,7 +335,7 @@ double downscale(py::array_t<complex> &x, py::array_t<complex> &y) {
 
     double inv_max_abs = 1.0 / max_abs;
 
-    #pragma omp for
+    // #pragma omp for
     for (size_t bin = 0; bin < nb_bins; bin++) {
         for (size_t frame = 0; frame < nb_frames; frame++) {
             for (size_t ch = 0; ch < nb_channels; ch++) {
@@ -367,7 +367,7 @@ void upscale(py::array_t<complex> &y, double scale) {
     size_t nb_frames = y.shape(0), nb_bins = y.shape(1), nb_channels = y.shape(2), nb_sources = y.shape(3);
     auto y_ref = y.mutable_unchecked<4>();
 
-    #pragma omp for
+    // #pragma omp for
     for (size_t bin = 0; bin < nb_bins; bin++) {
         for (size_t frame = 0; frame < nb_frames; frame++) {
             for (size_t ch = 0; ch < nb_channels; ch++) {
