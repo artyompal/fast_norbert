@@ -19,7 +19,7 @@ def print_diff(a, b):
     print('a', a[pos])
     print('b', b[pos])
 
-def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
+def expectation_maximization(y, x, iterations=2, verbose=False, eps=None):
     r"""Expectation maximization algorithm, for refining source separation
     estimates.
 
@@ -77,7 +77,7 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
         number of iterations for the EM algorithm.
 
     verbose: boolean
-        display some information if True
+        display profiling information if True
 
     eps: float or None [scalar]
         The epsilon value to use for regularization and filters.
@@ -138,19 +138,15 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
     R = np.zeros((nb_bins, nb_channels, nb_channels, nb_sources), x.dtype)
     v = np.zeros((nb_frames, nb_bins, nb_sources))
 
-    if verbose:
-        print('number of iterations: ', iterations)
-
     regularization = np.sqrt(eps) * (
             np.tile(np.eye(nb_channels, dtype=np.complex64), (1, nb_bins, 1, 1)))
 
     for it in range(iterations):
         # constructing the mixture covariance matrix. Doing it with a loop
         # to avoid storing anytime in RAM the whole 6D tensor
-        if verbose:
-            print('EM, iteration %d' % (it+1))
 
-        tm = time.time()
+        if verbose:
+            tm = time.time()
 
         for j in range(nb_sources):
             # update the spectrogram model for source j
@@ -165,10 +161,10 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
             # assert np.allclose(r1, v_j), f'{r1} == {v_j}'
             # assert np.allclose(r2, R_j), f'{r2} == {R_j}'
 
-        tm = time.time() - tm
-        print('time of get_local_gaussian_model', tm)
-
-        tm = time.time()
+        if verbose:
+            tm = time.time() - tm
+            print('time of get_local_gaussian_model', tm)
+            tm = time.time()
 
         for t in range(nb_frames):
             # orig_cxx = get_mix_model(v[None, t, ...], R)
@@ -190,13 +186,14 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
 
                 y[t, ..., j] = y_j
 
-        tm = time.time() - tm
-        print('time of the main loop', tm)
+        if verbose:
+            tm = time.time() - tm
+            print('time of the main loop', tm)
 
     return y, v, R
 
 
-def wiener(v, x, iterations=1, use_softmask=True, eps=None):
+def wiener(v, x, iterations=1, use_softmask=True, eps=None, verbose=False):
     """Wiener-based separation for multichannel audio.
 
     The method uses the (possibly multichannel) spectrograms `v` of the
@@ -263,6 +260,9 @@ def wiener(v, x, iterations=1, use_softmask=True, eps=None):
         that is taken out when separating.
         If `None`, the default value is taken as `np.finfo(np.real(x[0])).eps`.
 
+    verbose: boolean
+        display profiling information if True
+
     Returns
     -------
 
@@ -290,50 +290,51 @@ def wiener(v, x, iterations=1, use_softmask=True, eps=None):
     :func:`wiener`.
 
     """
-    print('started wiener()')
-    tm = time.time()
+    if verbose:
+        print('started wiener()')
+        tm = time.time()
 
     if use_softmask:
         y = softmask(v, x, eps=eps)
     else:
-        t = time.time()
+        if verbose:
+            t = time.time()
 
         # yy = v * np.exp(1j * np.angle(x[..., None]))
         y = cpp_norbert.get_phase(v, x)
         # assert np.allclose(y1, y2), f'{y1} != {y2}'
 
-        print('time1:', time.time() - t)
+        if verbose:
+            print('time1:', time.time() - t)
 
     if not iterations:
         return y
 
     # we need to refine the estimates. Scales down the estimates for
     # numerical stability
-    t = time.time()
-
-    # max_abs2 = max(1, np.abs(x).max() / 10)
-    # xx = x / max_abs2
-    # yy = y / max_abs2
+    if verbose:
+        t = time.time()
 
     max_abs = cpp_norbert.downscale(x, y);
 
-    # assert np.allclose(max_abs, max_abs2)
-    # assert np.allclose(x, xx), f'{x} != {xx}'
-    # assert np.allclose(y, yy), f'{y} != {yy}'
-
-    print('time2:', time.time() - t)
-
-    print('time in wiener():', time.time() - tm)
+    if verbose:
+        print('time2:', time.time() - t)
+        print('time in wiener():', time.time() - tm)
 
     y = expectation_maximization(y, x, iterations, eps=eps)[0]
-    t = time.time()
+
+    if verbose:
+        t = time.time()
+
     y *= max_abs
 
     # This is slower so far:
     # cpp_norbert.upscale(y, max_abs);
     # assert np.allclose(y, yy), f'{y} != {yy}'
 
-    print('time3:', time.time() - t)
+    if verbose:
+        print('time3:', time.time() - t)
+
     return y
 
 
