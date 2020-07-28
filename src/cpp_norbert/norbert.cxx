@@ -167,6 +167,12 @@ py::array_t<complex> apply_filter(const py::array_t<complex> &x, const py::array
 }
 
 
+void expectation_maximization_pass(py::array_t<complex> &y, const py::array_t<double> &v,
+                                   const py::array_t<complex> &r) {
+    // TODO: implement this
+    
+}
+
 void covariance(py::array_t<complex> &r_j, const py::array_t<complex> &y_j, size_t frame) {
 /*
     Compute the empirical covariance for a source.
@@ -385,6 +391,8 @@ PYBIND11_MODULE(cpp_norbert, m) {
     m.def("wiener_gain", &wiener_gain, py::arg("v_j").noconvert(), py::arg("r_j").noconvert(),
           py::arg("inv_cxx").noconvert());
     m.def("apply_filter", &apply_filter,py::arg("x").noconvert(), py::arg("v").noconvert());
+    m.def("expectation_maximization_pass", &expectation_maximization_pass,py::arg("y").noconvert(),
+        py::arg("v").noconvert(), py::arg("r").noconvert());
     m.def("get_local_gaussian_model", &get_local_gaussian_model, py::arg("v_j").noconvert(),
           py::arg("r_j").noconvert(), py::arg("y_j").noconvert(), py::arg("r_j"));
     m.def("get_phase", &get_phase, py::arg("v").noconvert(), py::arg("x").noconvert());

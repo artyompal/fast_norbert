@@ -101,7 +101,7 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
           algorithm. This is precisely what the :func:`wiener` function does.
 
         * This algorithm *is not* an implementation of the "exact" EM
-          proposed in [1]_. In particular, it does compute the posterior
+          proposed in [1]_. In particular, it does not compute the posterior
           covariance matrices the same (exact) way. Instead, it uses the
           simplified approximate scheme initially proposed in [5]_ and further
           refined in [3]_, [4]_, that boils down to just take the empirical
@@ -138,18 +138,12 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
     R = np.zeros((nb_bins, nb_channels, nb_channels, nb_sources), x.dtype)
     v = np.zeros((nb_frames, nb_bins, nb_sources))
 
-    if verbose:
-        print('number of iterations: ', iterations)
-
     regularization = np.sqrt(eps) * (
             np.tile(np.eye(nb_channels, dtype=np.complex64), (1, nb_bins, 1, 1)))
 
     for it in range(iterations):
         # constructing the mixture covariance matrix. Doing it with a loop
         # to avoid storing anytime in RAM the whole 6D tensor
-        if verbose:
-            print('EM, iteration %d' % (it+1))
-
         tm = time.time()
 
         for j in range(nb_sources):
@@ -169,6 +163,9 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
         print('time of get_local_gaussian_model', tm)
 
         tm = time.time()
+#         orig_y = np.copy(y)
+
+        # cpp_norbert.expectation_maximization_pass(orig_y, v, R)
 
         for t in range(nb_frames):
             # orig_cxx = get_mix_model(v[None, t, ...], R)
@@ -189,6 +186,9 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
                 # assert np.allclose(orig_y_j, y_j), f'{orig_y_j} == {y_j}'
 
                 y[t, ..., j] = y_j
+
+        # assert y.shape == orig_y.shape, f'{y.shape} == {orig_y.shape}'
+        # assert np.allclose(y, orig_y), f'{y.flatten()} == {orig_y.flatten()}'
 
         tm = time.time() - tm
         print('time of the main loop', tm)
