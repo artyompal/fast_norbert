@@ -134,7 +134,7 @@ setup(
     packages=['fast_norbert'],
     ext_modules=ext_modules,
     setup_requires=['pybind11>=2.5.0'],
-    install_requires=['numpy>=1.0.0', 'scipy>=1.0.0'],
+    install_requires=['numpy>=1.18.1', 'scipy>=1.5.1'],
     cmdclass={'build_ext': BuildExt},
     zip_safe=False,
 )
