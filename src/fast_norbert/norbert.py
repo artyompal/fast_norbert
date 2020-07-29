@@ -6,7 +6,7 @@ import numpy as np
 from .contrib import compress_filter, smooth, residual_model
 from .contrib import reduce_interferences
 
-import cpp_norbert
+import fast_norbert_cpp
 
 
 def print_diff(a, b):
@@ -153,7 +153,7 @@ def expectation_maximization(y, x, iterations=2, verbose=False, eps=None):
             y_j = y[..., j]
             v_j, R_j = v[..., j], R[..., j]
 
-            cpp_norbert.get_local_gaussian_model(v_j, R_j, y_j, eps)
+            fast_norbert_cpp.get_local_gaussian_model(v_j, R_j, y_j, eps)
 
             # r1, r2 = get_local_gaussian_model(y_j, eps)
             # assert r1.shape == v_j.shape, f'{r1.shape} == {v_j.shape}'
@@ -168,7 +168,7 @@ def expectation_maximization(y, x, iterations=2, verbose=False, eps=None):
 
         for t in range(nb_frames):
             # orig_cxx = get_mix_model(v[None, t, ...], R)
-            Cxx = cpp_norbert.get_mix_model(v[None, t, ...], R)
+            Cxx = fast_norbert_cpp.get_mix_model(v[None, t, ...], R)
             # assert np.allclose(orig_cxx, Cxx), f'{orig_cxx} == {Cxx}'
 
             Cxx += regularization
@@ -177,11 +177,11 @@ def expectation_maximization(y, x, iterations=2, verbose=False, eps=None):
             # separate the sources
             for j in range(nb_sources):
                 # orig_W_j = wiener_gain(v[None, t, ..., j], R[..., j], inv_Cxx)
-                W_j = cpp_norbert.wiener_gain(v[None, t, ..., j], R[..., j], inv_Cxx)
+                W_j = fast_norbert_cpp.wiener_gain(v[None, t, ..., j], R[..., j], inv_Cxx)
                 # assert np.allclose(orig_W_j, W_j), f'{orig_W_j} == {W_j}'
 
                 # orig_y_j = apply_filter(x[None, t, ...], W_j)[0]
-                y_j = cpp_norbert.apply_filter(x[None, t, ...], W_j)[0]
+                y_j = fast_norbert_cpp.apply_filter(x[None, t, ...], W_j)[0]
                 # assert np.allclose(orig_y_j, y_j), f'{orig_y_j} == {y_j}'
 
                 y[t, ..., j] = y_j
@@ -301,7 +301,7 @@ def wiener(v, x, iterations=1, use_softmask=True, eps=None, verbose=False):
             t = time.time()
 
         # yy = v * np.exp(1j * np.angle(x[..., None]))
-        y = cpp_norbert.get_phase(v, x)
+        y = fast_norbert_cpp.get_phase(v, x)
         # assert np.allclose(y1, y2), f'{y1} != {y2}'
 
         if verbose:
@@ -315,7 +315,7 @@ def wiener(v, x, iterations=1, use_softmask=True, eps=None, verbose=False):
     if verbose:
         t = time.time()
 
-    max_abs = cpp_norbert.downscale(x, y);
+    max_abs = fast_norbert_cpp.downscale(x, y);
 
     if verbose:
         print('time2:', time.time() - t)
@@ -329,7 +329,7 @@ def wiener(v, x, iterations=1, use_softmask=True, eps=None, verbose=False):
     y *= max_abs
 
     # This is slower so far:
-    # cpp_norbert.upscale(y, max_abs);
+    # fast_norbert_cpp.upscale(y, max_abs);
     # assert np.allclose(y, yy), f'{y} != {yy}'
 
     if verbose:

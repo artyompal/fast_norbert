@@ -380,7 +380,7 @@ void upscale(py::array_t<complex> &y, double scale) {
 }
 
 
-PYBIND11_MODULE(cpp_norbert, m) {
+PYBIND11_MODULE(fast_norbert_cpp, m) {
     m.def("get_mix_model", &get_mix_model, py::arg("v_j").noconvert(), py::arg("v_j").noconvert());
     m.def("wiener_gain", &wiener_gain, py::arg("v_j").noconvert(), py::arg("r_j").noconvert(),
           py::arg("inv_cxx").noconvert());

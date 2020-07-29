@@ -22,10 +22,10 @@ class get_pybind_include(object):
 
 ext_modules = [
     Extension(
-        'cpp_norbert',
+        'fast_norbert_cpp',
         # sort input source files to ensure bit-for-bit reproducible builds
         sorted([
-            'src/cpp_norbert/norbert.cxx',
+            'src/fast_norbert_cpp/norbert.cxx',
             ]),
         include_dirs=[
             # path to pybind11 headers
