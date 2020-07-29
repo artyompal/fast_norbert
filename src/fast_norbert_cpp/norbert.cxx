@@ -7,8 +7,6 @@
 namespace py = pybind11;
 using complex = std::complex<double>;
 
-#include "helpers.h"
-
 
 #define USE_UNCHECKED 1
 #define ENABLE_ASSERTIONS 0
