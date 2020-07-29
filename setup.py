@@ -5,7 +5,7 @@ import sys
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 
 class get_pybind_include(object):
@@ -26,7 +26,6 @@ ext_modules = [
         # sort input source files to ensure bit-for-bit reproducible builds
         sorted([
             'src/cpp_norbert/norbert.cxx',
-            'src/cpp_norbert/helpers.h'
             ]),
         include_dirs=[
             # path to pybind11 headers
