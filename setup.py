@@ -24,7 +24,10 @@ ext_modules = [
     Extension(
         'cpp_norbert',
         # sort input source files to ensure bit-for-bit reproducible builds
-        sorted(['src/cpp_norbert/norbert.cxx']),
+        sorted([
+            'src/cpp_norbert/norbert.cxx',
+            'src/cpp_norbert/helpers.h'
+            ]),
         include_dirs=[
             # path to pybind11 headers
             get_pybind_include(),
