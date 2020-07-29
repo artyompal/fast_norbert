@@ -1,6 +1,17 @@
 # Fast Norbert
 
-Fast Norbert is an optimized fork of https://github.com/sigsep/norbert. Original description is below.
+Fast Norbert is an optimized fork of https://github.com/sigsep/norbert.
+
+## Performance
+
+This is time (in seconds) that the filtering process takes on a single core:
+
+| Test case | Original Norbert | Fast Norbert |
+| ----------| ---------------- |--------------| 
+| song 1 | 19.3 | **7.5** |
+| song 2 | 27.5 | **10.9** |
+
+# Norbert filter
 
 Wiener filter is a very popular way of filtering multichannel audio for several applications, notably speech enhancement and source separation.
 
