@@ -6,8 +6,8 @@ import norbert
 import fast_norbert
 
 
-def test_fast_norbert():
-    testcase0 = np.load('tests/testcase0.npz')
+def invoke_fast_norbert(filename: str):
+    testcase0 = np.load(filename)
     x1, v1 = testcase0['x'], testcase0['v']
     x2, v2 = np.copy(x1), np.copy(v1)
 
@@ -19,3 +19,10 @@ def test_fast_norbert():
 
     assert y1.shape == y2.shape, f'{y1.shape} == {y2.shape}'
     assert np.allclose(y1, y2), f'{y1.flatten()} == {y2.flatten()}'
+
+def test_1():
+    invoke_fast_norbert('tests/testcase1.npz')
+
+def test_1():
+    invoke_fast_norbert('tests/testcase2.npz')
+
