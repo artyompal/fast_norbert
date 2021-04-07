@@ -1,6 +1,8 @@
+.cache/
 .git/
 __pycache__/
 build/
 dist/
+tmp/
 *.egg-info
 *.npz

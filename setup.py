@@ -5,8 +5,6 @@ import sys
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 
-__version__ = '0.0.3'
-
 
 class get_pybind_include(object):
     """ Helper class to determine the pybind11 include path
@@ -122,9 +120,14 @@ class BuildExt(build_ext):
 with open('README.md') as f:
     long_description = f.read()
 
+# from src.fast_norbert import __version__
+with open('src/fast_norbert/__init__.py') as f:
+    s = list(f)[0]
+    version = s.split()[-1][1:-1]
+
 setup(
     name='fast_norbert',
-    version=__version__,
+    version=version,
     author='Artyom Palvelev',
     url='https://github.com/artyompal/fast_norbert',
     description='Accelerated Wiener filter',

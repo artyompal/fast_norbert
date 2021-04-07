@@ -7,8 +7,6 @@
 namespace py = pybind11;
 using complex = std::complex<double>;
 
-#include "helpers.h"
-
 
 #define USE_UNCHECKED 1
 
@@ -41,7 +39,7 @@ py::array_t<complex> get_mix_model(const py::array_t<double> &v_j, const py::arr
     size_t nb_frames = v_j.shape(0), nb_bins = v_j.shape(1), nb_sources = v_j.shape(2);
 
     py::array_t<complex> cxx({nb_frames, nb_bins, nb_channels, nb_channels});
-    memset(cxx.mutable_data(), 0, cxx.nbytes());
+    std::fill(cxx.mutable_data(), cxx.mutable_data() + cxx.size(), 0);
 
     auto v_j_ref = v_j.unchecked<3>();
     auto r_j_ref = r_j.unchecked<4>();
@@ -89,7 +87,7 @@ py::array_t<complex> wiener_gain(const py::array_t<double> &v_j, const py::array
     size_t nb_frames = v_j.shape(0), nb_bins = v_j.shape(1), nb_channels = r_j.shape(2);
 
     py::array_t<complex> g({nb_frames, nb_bins, nb_channels, nb_channels});
-    memset(g.mutable_data(), 0, g.nbytes());
+    std::fill(g.mutable_data(), g.mutable_data() + g.size(), 0);
 
     auto v_j_ref = v_j.unchecked<2>();
     auto r_j_ref = r_j.unchecked<3>();
@@ -146,7 +144,7 @@ py::array_t<complex> apply_filter(const py::array_t<complex> &x, const py::array
     size_t nb_frames = x.shape(0), nb_bins = x.shape(1), nb_channels = x.shape(2);
 
     py::array_t<complex> y({nb_frames, nb_bins, nb_channels});
-    memset(y.mutable_data(), 0, y.nbytes());
+    std::fill(y.mutable_data(), y.mutable_data() + y.size(), 0);
 
     auto x_ref = x.unchecked<3>();
     auto w_ref = w.unchecked<4>();
