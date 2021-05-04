@@ -117,11 +117,11 @@ class BuildExt(build_ext):
 
 
 # Get the long description from the README file
-with open('README.md') as f:
+with open('README.md', 'r', encoding='utf-8') as f:
     long_description = f.read()
 
 # from src.fast_norbert import __version__
-with open('src/fast_norbert/__init__.py') as f:
+with open('src/fast_norbert/__init__.py', 'r', encoding='utf-8') as f:
     s = list(f)[0]
     version = s.split()[-1][1:-1]
 
